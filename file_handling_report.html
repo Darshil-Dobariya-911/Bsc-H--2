@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>C File Handling – Reading & Writing Functions</title>
+  <style>
+    /* ── Google Font ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --primary: #1a237e;
+      --accent:  #283593;
+      --highlight: #e8eaf6;
+      --code-bg: #1e1e2e;
+      --code-fg: #cdd6f4;
+      --border:  #c5cae9;
+      --tag-read:   #1565c0;
+      --tag-write:  #2e7d32;
+      --tag-open:   #6a1b9a;
+      --tag-close:  #bf360c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: #1a1a2e;
+      background: #fff;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 48px;
+    }
+
+    /* ── Cover Page ── */
+    .cover {
+      min-height: 96vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      page-break-after: always;
+      background: linear-gradient(135deg, #1a237e 0%, #283593 60%, #3949ab 100%);
+      border-radius: 16px;
+      padding: 60px 40px;
+      color: #fff;
+    }
+    .cover .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 30px;
+      padding: 6px 22px;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 30px;
+    }
+    .cover h1 {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+    .cover h1 span { color: #90caf9; }
+    .cover .subtitle {
+      font-size: 16px;
+      opacity: .85;
+      margin-bottom: 40px;
+      max-width: 560px;
+    }
+    .cover-meta {
+      display: flex;
+      gap: 36px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 13px;
+      opacity: .9;
+    }
+    .cover-meta div { display: flex; flex-direction: column; gap: 4px; }
+    .cover-meta .label { opacity: .65; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .cover-divider {
+      width: 60px; height: 3px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+      margin: 32px auto;
+    }
+
+    /* ── TOC ── */
+    .toc-page { page-break-after: always; }
+    .toc-page h2 { font-size: 22px; color: var(--primary); margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+    .toc-list { list-style: none; }
+    .toc-list li { padding: 7px 0; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; }
+    .toc-list li a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .toc-list li a:hover { text-decoration: underline; }
+    .toc-list .sub { padding-left: 20px; font-weight: 400; color: #444; }
+
+    /* ── Section headings ── */
+    h2.section-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      border-left: 5px solid var(--primary);
+      padding-left: 14px;
+      margin: 36px 0 14px;
+    }
+    h3.sub-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 24px 0 8px;
+    }
+    p { margin-bottom: 10px; }
+
+    /* ── Info boxes ── */
+    .info-box {
+      background: var(--highlight);
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+    .info-box.green  { background: #e8f5e9; border-color: #2e7d32; }
+    .info-box.orange { background: #fff3e0; border-color: #e65100; }
+    .info-box.purple { background: #f3e5f5; border-color: #6a1b9a; }
+    .info-box strong { display: block; margin-bottom: 4px; font-size: 13px; }
+
+    /* ── Syntax box ── */
+    .syntax {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 10px 0 16px;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.6;
+    }
+    .kw  { color: #cba6f7; }
+    .fn  { color: #89b4fa; }
+    .str { color: #a6e3a1; }
+    .cmt { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .tp  { color: #f38ba8; }
+
+    /* ── Function table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 13px;
+    }
+    th {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:nth-child(even) td { background: #f5f5ff; }
+
+    /* ── Tag badges ── */
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 2px 10px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #fff;
+    }
+    .tag.read  { background: var(--tag-read);  }
+    .tag.write { background: var(--tag-write); }
+    .tag.open  { background: var(--tag-open);  }
+    .tag.close { background: var(--tag-close); }
+
+    /* ── Program block ── */
+    .program-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 20px 0;
+      page-break-inside: avoid;
+    }
+    .program-card .card-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .program-card .card-header .prog-title { font-weight: 700; font-size: 15px; }
+    .program-card .card-header .prog-fn    { font-size: 12px; opacity: .8; }
+    .program-card .card-body { padding: 16px 18px; }
+    .program-card .card-body p { margin-bottom: 8px; }
+
+    /* ── Page breaks ── */
+    .page-break { page-break-before: always; }
+
+    /* ── Footer note ── */
+    .footer-note {
+      margin-top: 48px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      font-size: 11.5px;
+      color: #777;
+      text-align: center;
+    }
+
+    /* ── Flow diagram (CSS only) ── */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+      margin: 16px 0 24px 20px;
+    }
+    .flow-step {
+      background: var(--highlight);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      position: relative;
+      min-width: 260px;
+    }
+    .flow-arrow {
+      width: 2px; height: 22px;
+      background: var(--border);
+      margin-left: 25px;
+    }
+
+    @media print {
+      body { padding: 0; }
+      .cover { border-radius: 0; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="badge">Lab – 16 &nbsp;|&nbsp; Theory of Automata &amp; Formal Languages (BSC-H)</div>
+  <h1>C File Handling<br><span>Reading &amp; Writing Functions</span></h1>
+  <div class="subtitle">
+    A detailed reference document analysing all seven lab programs and every
+    standard C library function used for file I/O operations.
+  </div>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <div><span class="label">Subject</span>TA (BSC-H)</div>
+    <div><span class="label">Lab</span>LAB-16</div>
+    <div><span class="label">University</span>Darshan University</div>
+    <div><span class="label">Semester</span>4</div>
+    <div><span class="label">Date</span>March 2026</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TABLE OF CONTENTS
+══════════════════════════════════════════ -->
+<div class="toc-page">
+  <h2>Table of Contents</h2>
+  <ul class="toc-list">
+    <li><a href="#intro">1. Introduction to File Handling in C</a></li>
+    <li><a href="#lifecycle">2. File Operation Lifecycle</a></li>
+    <li><a href="#fopen">3. fopen() – Opening a File</a></li>
+    <li><a href="#fclose">4. fclose() – Closing a File</a></li>
+    <li class="sub"><a href="#write-funcs">5. Writing Functions</a></li>
+    <li class="sub"><a href="#fprintf">5.1&nbsp;&nbsp;fprintf()</a></li>
+    <li class="sub"><a href="#fputc">5.2&nbsp;&nbsp;fputc()</a></li>
+    <li class="sub"><a href="#fputs">5.3&nbsp;&nbsp;fputs()</a></li>
+    <li class="sub"><a href="#read-funcs">6. Reading Functions</a></li>
+    <li class="sub"><a href="#fgetc">6.1&nbsp;&nbsp;fgetc()</a></li>
+    <li class="sub"><a href="#fgets">6.2&nbsp;&nbsp;fgets()</a></li>
+    <li class="sub"><a href="#fscanf">6.3&nbsp;&nbsp;fscanf()</a></li>
+    <li><a href="#modes">7. File Opening Modes Reference Table</a></li>
+    <li><a href="#programs">8. Program-by-Program Analysis</a></li>
+    <li class="sub"><a href="#a1">a1.c – Write String to File</a></li>
+    <li class="sub"><a href="#a2">a2.c – Read File Character by Character</a></li>
+    <li class="sub"><a href="#a3">a3.c – Append Data to File</a></li>
+    <li class="sub"><a href="#a4">a4.c – Search Word in File</a></li>
+    <li class="sub"><a href="#b1">b1.c – Merge Two Files</a></li>
+    <li class="sub"><a href="#b2">b2.c – Count Words in File</a></li>
+    <li class="sub"><a href="#b3">b3.c – Store Student Records</a></li>
+    <li><a href="#comparison">9. Function Comparison at a Glance</a></li>
+    <li><a href="#errors">10. Common Errors &amp; Best Practices</a></li>
+    <li><a href="#summary">11. Summary</a></li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 1 – INTRODUCTION
+══════════════════════════════════════════ -->
+<h2 class="section-title" id="intro">1. Introduction to File Handling in C</h2>
+<p>
+  File handling in C allows a program to <strong>persist data</strong> beyond program execution by
+  reading from and writing to files stored on disk. The C standard library
+  (<code>&lt;stdio.h&gt;</code>) provides a rich set of functions that abstract low-level OS
+  system calls into portable, easy-to-use routines.
+</p>
+<p>
+  All file I/O in C revolves around the <strong>FILE</strong> structure — an opaque type
+  defined in <code>&lt;stdio.h&gt;</code> that contains all the metadata the C runtime needs
+  to manage an open file (buffer, position indicator, error flags, etc.).
+  Programs never access this structure directly; they always use a <em>pointer</em>
+  to it: <code>FILE *fp;</code>.
+</p>
+<div class="info-box">
+  <strong>Key header required</strong>
+  Every file-handling program must include <code>#include &lt;stdio.h&gt;</code>.
+  This header declares the FILE type, EOF macro, and all I/O functions discussed in this document.
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 2 – LIFECYCLE
+══════════════════════════════════════════ -->
+<h2 class="section-title" id="lifecycle">2. File Operation Lifecycle</h2>
+<p>Every file interaction in C follows a strict three-step lifecycle:</p>
+<div class="flow">
+  <div class="flow-step">① &nbsp;Open the file — <code>fopen()</code></div>
+  <div class="flow-arrow"></div>
+  <div class="flow-step">② &nbsp;Read / Write data — <code>fgetc, fgets, fscanf, fprintf, fputc …</code></div>
+  <div class="flow-arrow"></div>
+  <div class="flow-step">③ &nbsp;Close the file — <code>fclose()</code></div>
+</div>
+<div class="info-box orange">
+  <strong>⚠ Always check for NULL after fopen()</strong>
+  If <code>fopen()</code> fails (file missing, permission denied, disk full) it returns
+  <code>NULL</code>. Attempting to read/write through a NULL pointer causes
+  <em>undefined behaviour</em> — always validate first.
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 3 – fopen
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="fopen">3. fopen() – Opening a File</h2>
+<span class="tag open">Open</span>
+
+<h3 class="sub-title">Syntax</h3>
+<div class="syntax"><span class="tp">FILE</span> *<span class="fn">fopen</span>(<span class="kw">const</span> <span class="tp">char</span> *filename, <span class="kw">const</span> <span class="tp">char</span> *mode);</div>
+
+<h3 class="sub-title">Parameters</h3>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>filename</td><td>const char *</td><td>Path/name of the file to open (e.g. <code>"output.txt"</code>)</td></tr>
+  <tr><td>mode</td><td>const char *</td><td>String specifying how the file should be opened (see §7)</td></tr>
+</table>
+
+<h3 class="sub-title">Return Value</h3>
+<p>Returns a <code>FILE *</code> pointer on success, or <code>NULL</code> on failure.</p>
+
+<h3 class="sub-title">Example (from a1.c)</h3>
+<div class="syntax"><span class="tp">FILE</span> *fp;
+fp = <span class="fn">fopen</span>(<span class="str">"output.txt"</span>, <span class="str">"w"</span>);   <span class="cmt">// open for writing</span>
+<span class="kw">if</span> (fp == <span class="kw">NULL</span>) {
+    <span class="fn">printf</span>(<span class="str">"File cannot be opened!\n"</span>);
+    <span class="kw">return</span> <span class="num">1</span>;
+}</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 4 – fclose
+══════════════════════════════════════════ -->
+<h2 class="section-title" id="fclose">4. fclose() – Closing a File</h2>
+<span class="tag close">Close</span>
+
+<h3 class="sub-title">Syntax</h3>
+<div class="syntax"><span class="tp">int</span> <span class="fn">fclose</span>(<span class="tp">FILE</span> *fp);</div>
+
+<h3 class="sub-title">Description</h3>
+<p>
+  Flushes any pending writes in the buffer to disk, releases all resources
+  associated with the stream and invalidates the pointer.
+  Returns <code>0</code> on success, <code>EOF</code> on error.
+</p>
+<div class="info-box green">
+  <strong>✅ Best practice</strong>
+  Always call <code>fclose()</code> for every successfully opened file.
+  Forgetting to close a file may result in data loss (unflushed buffers) and
+  resource leaks (each process has a limited number of open file descriptors).
+</div>
+<div class="syntax">fclose(fp);   <span class="cmt">// seen in every program: a1.c, a2.c, a3.c, a4.c, b1.c, b2.c, b3.c</span></div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 5 – WRITING FUNCTIONS
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="write-funcs">5. Writing Functions</h2>
+
+<!-- 5.1 fprintf -->
+<h3 class="sub-title" id="fprintf">5.1 fprintf() &nbsp;<span class="tag write">Write</span></h3>
+<p>
+  <code>fprintf()</code> is the file-writing counterpart of <code>printf()</code>.
+  It writes a <strong>formatted string</strong> to a file stream using the same
+  format specifiers as <code>printf</code>.
+</p>
+<h3 class="sub-title">Syntax</h3>
+<div class="syntax"><span class="tp">int</span> <span class="fn">fprintf</span>(<span class="tp">FILE</span> *fp, <span class="kw">const</span> <span class="tp">char</span> *format, ...);</div>
+
+<table>
+  <tr><th>Parameter</th><th>Description</th></tr>
+  <tr><td>fp</td><td>Pointer to the open FILE (must be opened in write/append mode)</td></tr>
+  <tr><td>format</td><td>Format string with optional conversion specifiers (%s, %d, %f, …)</td></tr>
+  <tr><td>...</td><td>Variable arguments matching the format specifiers</td></tr>
+</table>
+
+<p><strong>Return:</strong> Number of characters written, or a negative value on error.</p>
+
+<h3 class="sub-title">Usage in Lab Programs</h3>
+<div class="syntax"><span class="cmt">// a1.c – write a string</span>
+<span class="fn">fprintf</span>(fp, <span class="str">"%s"</span>, str);
+
+<span class="cmt">// a3.c – append a line</span>
+<span class="fn">fprintf</span>(fp, <span class="str">"%s\n"</span>, str);
+
+<span class="cmt">// b3.c – write structured record</span>
+<span class="fn">fprintf</span>(fp, <span class="str">"%s %d %.2f\n"</span>, s.name, s.id, s.grade);</div>
+
+<div class="info-box purple">
+  <strong>💡 fprintf vs printf</strong>
+  The only difference between <code>fprintf</code> and <code>printf</code> is the
+  first argument: <code>printf</code> always writes to <em>stdout</em>, while
+  <code>fprintf</code> accepts any FILE pointer — including <code>stdout</code>
+  and <code>stderr</code>.
+</div>
+
+<!-- 5.2 fputc -->
+<h3 class="sub-title" id="fputc">5.2 fputc() &nbsp;<span class="tag write">Write</span></h3>
+<p>
+  Writes a <strong>single character</strong> to the specified file stream.
+  It is the simplest write function and is ideal when copying files
+  character by character (as in b1.c).
+</p>
+<div class="syntax"><span class="tp">int</span> <span class="fn">fputc</span>(<span class="tp">int</span> ch, <span class="tp">FILE</span> *fp);</div>
+<table>
+  <tr><th>Parameter</th><th>Description</th></tr>
+  <tr><td>ch</td><td>Character to write (passed as int, internally cast to unsigned char)</td></tr>
+  <tr><td>fp</td><td>Pointer to the target file stream</td></tr>
+</table>
+<p><strong>Return:</strong> The written character on success, <code>EOF</code> on failure.</p>
+
+<div class="syntax"><span class="cmt">// b1.c – copy file1 into merged.txt one character at a time</span>
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(f1)) != EOF) {
+    <span class="fn">fputc</span>(ch, f3);   <span class="cmt">// write each character to output file</span>
+}</div>
+
+<!-- 5.3 fputs -->
+<h3 class="sub-title" id="fputs">5.3 fputs() &nbsp;<span class="tag write">Write</span></h3>
+<p>
+  Writes a <strong>null-terminated string</strong> (without the trailing <code>\0</code>)
+  to the file. It does <em>not</em> automatically append a newline.
+</p>
+<div class="syntax"><span class="tp">int</span> <span class="fn">fputs</span>(<span class="kw">const</span> <span class="tp">char</span> *str, <span class="tp">FILE</span> *fp);</div>
+<p><strong>Return:</strong> Non-negative value on success, <code>EOF</code> on error.</p>
+<div class="info-box">
+  <strong>Note</strong>
+  None of the seven lab programs use <code>fputs()</code> directly, but it is the
+  character-string counterpart of <code>fgets()</code> and is commonly used
+  with <code>fgets()</code>-based reading loops.
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 6 – READING FUNCTIONS
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="read-funcs">6. Reading Functions</h2>
+
+<!-- 6.1 fgetc -->
+<h3 class="sub-title" id="fgetc">6.1 fgetc() &nbsp;<span class="tag read">Read</span></h3>
+<p>
+  Reads and returns the <strong>next single character</strong> from the file stream,
+  advancing the file position indicator by one byte.
+  Returns <code>EOF</code> (typically –1) when the end of file is reached or an
+  error occurs.
+</p>
+<div class="syntax"><span class="tp">int</span> <span class="fn">fgetc</span>(<span class="tp">FILE</span> *fp);</div>
+<table>
+  <tr><th>Return value</th><th>Meaning</th></tr>
+  <tr><td>Character (0–255)</td><td>Successfully read character</td></tr>
+  <tr><td>EOF (−1)</td><td>End of file reached, or I/O error</td></tr>
+</table>
+
+<h3 class="sub-title">Usage in Lab Programs</h3>
+<div class="syntax"><span class="cmt">// a2.c – print every character of input.txt</span>
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(fp)) != EOF) {
+    <span class="fn">printf</span>(<span class="str">"%c"</span>, ch);
+}
+
+<span class="cmt">// b1.c – copy characters from file1 & file2 into merged.txt</span>
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(f1)) != EOF) {
+    <span class="fn">fputc</span>(ch, f3);
+}</div>
+
+<div class="info-box orange">
+  <strong>⚠ Store result in int, not char</strong>
+  <code>fgetc()</code> returns an <code>int</code> so it can represent both all possible
+  byte values (0–255) <em>and</em> the special EOF (–1) sentinel.
+  Storing the return value in a <code>char</code> variable can hide the EOF signal
+  if <code>char</code> is unsigned on the target platform.
+</div>
+
+<!-- 6.2 fgets -->
+<h3 class="sub-title" id="fgets">6.2 fgets() &nbsp;<span class="tag read">Read</span></h3>
+<p>
+  Reads at most <code>n-1</code> characters from the file into a buffer, stopping
+  early if a <strong>newline</strong> or <strong>EOF</strong> is encountered. The newline,
+  if read, is stored in the buffer. A null terminator is always appended.
+</p>
+<div class="syntax"><span class="tp">char</span> *<span class="fn">fgets</span>(<span class="tp">char</span> *buffer, <span class="tp">int</span> n, <span class="tp">FILE</span> *fp);</div>
+<table>
+  <tr><th>Parameter</th><th>Description</th></tr>
+  <tr><td>buffer</td><td>Destination character array</td></tr>
+  <tr><td>n</td><td>Maximum characters to read (including null terminator)</td></tr>
+  <tr><td>fp</td><td>Source file stream</td></tr>
+</table>
+<p><strong>Return:</strong> <code>buffer</code> on success, <code>NULL</code> at EOF or error.</p>
+
+<h3 class="sub-title">Usage in Lab Programs</h3>
+<div class="syntax"><span class="cmt">// a4.c – read file line by line to search for a word</span>
+<span class="kw">while</span> (<span class="fn">fgets</span>(line, <span class="kw">sizeof</span>(line), fp)) {
+    lineNumber++;
+    <span class="kw">if</span> (<span class="fn">strstr</span>(line, word) != <span class="kw">NULL</span>) {
+        <span class="fn">printf</span>(<span class="str">"Word found at line %d\n"</span>, lineNumber);
+    }
+}</div>
+
+<div class="info-box green">
+  <strong>✅ fgets is safer than gets()</strong>
+  <code>fgets()</code> accepts a size argument and will never overflow the buffer —
+  unlike the now-deprecated <code>gets()</code> function used in a1.c/a3.c for
+  <em>stdin</em> input, which has no bounds check and is a classic security
+  vulnerability (buffer overflow).
+</div>
+
+<!-- 6.3 fscanf -->
+<h3 class="sub-title" id="fscanf">6.3 fscanf() &nbsp;<span class="tag read">Read</span></h3>
+<p>
+  The file-reading counterpart of <code>scanf()</code>. Reads <strong>formatted input</strong>
+  from a file, parsing tokens according to format specifiers, and skipping
+  leading whitespace (spaces, tabs, newlines) by default.
+</p>
+<div class="syntax"><span class="tp">int</span> <span class="fn">fscanf</span>(<span class="tp">FILE</span> *fp, <span class="kw">const</span> <span class="tp">char</span> *format, ...);</div>
+<p>
+  <strong>Return:</strong> Number of items successfully matched and assigned.
+  Returns <code>EOF</code> when end-of-file is reached before any match.
+</p>
+
+<h3 class="sub-title">Usage in Lab Programs</h3>
+<div class="syntax"><span class="cmt">// b2.c – count words in a file</span>
+<span class="kw">while</span> (<span class="fn">fscanf</span>(fp, <span class="str">"%99s"</span>, word) == <span class="num">1</span>) {
+    count++;
+}
+<span class="cmt">// Return values:
+//   1   → one word successfully read  ✅
+//   EOF → end of file reached         ❌
+//   0   → input did not match format  ❌</span></div>
+
+<div class="info-box purple">
+  <strong>💡 Why compare to 1 and not EOF?</strong>
+  Comparing <code>fscanf(...) == 1</code> is more robust than <code>!= EOF</code>
+  because it also catches format-mismatch failures (return value 0), whereas
+  checking only for EOF would loop forever on a malformed file.
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 7 – MODES TABLE
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="modes">7. File Opening Modes Reference Table</h2>
+<table>
+  <tr>
+    <th>Mode</th>
+    <th>Meaning</th>
+    <th>File Exists</th>
+    <th>File Missing</th>
+    <th>Used In</th>
+  </tr>
+  <tr><td><code>"r"</code></td><td>Read only</td><td>Opens it</td><td>Returns NULL</td><td>a2.c, a4.c, b1.c, b2.c</td></tr>
+  <tr><td><code>"w"</code></td><td>Write only</td><td>Truncates to empty</td><td>Creates new</td><td>a1.c, b1.c, b3.c</td></tr>
+  <tr><td><code>"a"</code></td><td>Append only</td><td>Writes to end</td><td>Creates new</td><td>a3.c</td></tr>
+  <tr><td><code>"r+"</code></td><td>Read + Write</td><td>Opens it</td><td>Returns NULL</td><td>—</td></tr>
+  <tr><td><code>"w+"</code></td><td>Read + Write</td><td>Truncates</td><td>Creates new</td><td>—</td></tr>
+  <tr><td><code>"a+"</code></td><td>Read + Append</td><td>Reads from start, writes at end</td><td>Creates new</td><td>—</td></tr>
+  <tr><td><code>"rb"</code></td><td>Read binary</td><td>Opens it</td><td>Returns NULL</td><td>—</td></tr>
+  <tr><td><code>"wb"</code></td><td>Write binary</td><td>Truncates</td><td>Creates new</td><td>—</td></tr>
+</table>
+
+<div class="info-box">
+  <strong>Text vs Binary mode</strong>
+  On Windows, text mode (<code>"r"</code>, <code>"w"</code>) translates <code>\r\n</code> ↔ <code>\n</code>.
+  Binary mode (<code>"rb"</code>, <code>"wb"</code>) performs no translation, making it
+  mandatory for non-text data (images, executables) and portable for struct-based I/O.
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 8 – PROGRAMS
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="programs">8. Program-by-Program Analysis</h2>
+
+<!-- a1.c -->
+<div class="program-card" id="a1">
+  <div class="card-header">
+    <span class="prog-title">a1.c — Write a User String to a File</span>
+    <span class="prog-fn">Functions: fopen · fprintf · fclose</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Accepts a string from the user and writes it to <code>output.txt</code>.</p>
+    <div class="syntax"><span class="cmt">// Full source — a1.c</span>
+<span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+
+<span class="tp">int</span> <span class="fn">main</span>() {
+    <span class="tp">FILE</span> *fp;
+    <span class="tp">char</span> str[<span class="num">100</span>];
+
+    <span class="fn">printf</span>(<span class="str">"Enter a string: "</span>);
+    <span class="fn">gets</span>(str);          <span class="cmt">// reads from stdin (use fgets for safety)</span>
+
+    fp = <span class="fn">fopen</span>(<span class="str">"output.txt"</span>, <span class="str">"w"</span>);
+
+    <span class="kw">if</span> (fp == <span class="kw">NULL</span>) {
+        <span class="fn">printf</span>(<span class="str">"File cannot be opened!"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+
+    <span class="fn">fprintf</span>(fp, <span class="str">"%s"</span>, str);  <span class="cmt">// write string to file</span>
+
+    <span class="fn">fclose</span>(fp);
+    <span class="fn">printf</span>(<span class="str">"Data written to file successfully!"</span>);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</div>
+    <table>
+      <tr><th>Function</th><th>Role</th><th>Mode Used</th></tr>
+      <tr><td>fopen()</td><td>Open output.txt for writing (creates if not exists)</td><td>"w"</td></tr>
+      <tr><td>fprintf()</td><td>Write user-entered string with format specifier %s</td><td>—</td></tr>
+      <tr><td>fclose()</td><td>Flush buffer and close file</td><td>—</td></tr>
+    </table>
+    <div class="info-box orange"><strong>⚠ Caution</strong> <code>gets()</code> does not perform bounds checking and is removed in C11. Replace with <code>fgets(str, sizeof(str), stdin)</code>.</div>
+  </div>
+</div>
+
+<!-- a2.c -->
+<div class="program-card" id="a2">
+  <div class="card-header">
+    <span class="prog-title">a2.c — Read a File Character by Character</span>
+    <span class="prog-fn">Functions: fopen · fgetc · fgets · fscanf (shown) · fclose</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Reads and prints every character of <code>input.txt</code>. Also shows (commented out) how <code>fgets</code> and <code>fscanf</code> can do the same job differently.</p>
+    <div class="syntax"><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+
+<span class="tp">int</span> <span class="fn">main</span>() {
+    <span class="tp">FILE</span> *fp;
+    <span class="tp">char</span> ch, str[<span class="num">100</span>];
+
+    fp = <span class="fn">fopen</span>(<span class="str">"input.txt"</span>, <span class="str">"r"</span>);
+    <span class="kw">if</span> (fp == <span class="kw">NULL</span>) { <span class="fn">printf</span>(<span class="str">"File cannot be opened!"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+    <span class="cmt">// Method 1 – character by character</span>
+    <span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(fp)) != EOF) {
+        <span class="fn">printf</span>(<span class="str">"%c"</span>, ch);
+    }
+
+    <span class="cmt">// Method 2 (commented) – line by line</span>
+    <span class="cmt">// while (fgets(str, sizeof(str), fp) != NULL) {</span>
+    <span class="cmt">//     printf("%s", str);</span>
+    <span class="cmt">// }</span>
+
+    <span class="cmt">// Method 3 (commented) – word by word</span>
+    <span class="cmt">// while (fscanf(fp, "%s", str) != EOF) {</span>
+    <span class="cmt">//     printf("%s ", str);</span>
+    <span class="cmt">// }</span>
+
+    <span class="fn">fclose</span>(fp);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</div>
+    <table>
+      <tr><th>Method</th><th>Function</th><th>Granularity</th><th>Stops when</th></tr>
+      <tr><td>Active</td><td>fgetc()</td><td>One character per iteration</td><td>Returns EOF</td></tr>
+      <tr><td>Commented</td><td>fgets()</td><td>One line per iteration</td><td>Returns NULL</td></tr>
+      <tr><td>Commented</td><td>fscanf()</td><td>One whitespace-delimited word</td><td>Returns EOF</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- a3.c -->
+<div class="program-card" id="a3">
+  <div class="card-header">
+    <span class="prog-title">a3.c — Append Data to an Existing File</span>
+    <span class="prog-fn">Functions: fopen("a") · fprintf · fclose</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Opens <code>log.txt</code> in <strong>append mode</strong> and adds a new line without overwriting existing content.</p>
+    <div class="syntax">fp = <span class="fn">fopen</span>(<span class="str">"log.txt"</span>, <span class="str">"a"</span>);   <span class="cmt">// "a" preserves existing content</span>
+<span class="fn">fprintf</span>(fp, <span class="str">"%s\n"</span>, str);    <span class="cmt">// \n ensures each entry is on its own line</span>
+<span class="fn">fclose</span>(fp);</div>
+    <div class="info-box green">
+      <strong>✅ Difference between "w" and "a"</strong>
+      Mode <code>"w"</code> destroys existing file contents. Mode <code>"a"</code> always
+      positions the write cursor at the <em>end</em> of the file, making it perfect
+      for log files that must grow over multiple program runs.
+    </div>
+  </div>
+</div>
+
+<!-- a4.c -->
+<div class="program-card" id="a4">
+  <div class="card-header">
+    <span class="prog-title">a4.c — Search for a Word in a File</span>
+    <span class="prog-fn">Functions: fopen · fgets · strstr · fclose</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Reads <code>text.txt</code> line by line using <code>fgets()</code>; uses <code>strstr()</code> from <code>&lt;string.h&gt;</code> to search for a keyword and report its line number.</p>
+    <div class="syntax"><span class="kw">while</span> (<span class="fn">fgets</span>(line, <span class="kw">sizeof</span>(line), fp)) {
+    lineNumber++;
+    <span class="kw">if</span> (<span class="fn">strstr</span>(line, word) != <span class="kw">NULL</span>) {
+        <span class="fn">printf</span>(<span class="str">"Word found at line %d\n"</span>, lineNumber);
+        found = <span class="num">1</span>;
+    }
+}
+<span class="cmt">// strstr(haystack, needle) – returns pointer to first match, or NULL</span></div>
+    <p><strong>Key insight:</strong> <code>fgets()</code> preserves newlines, so each call maps exactly to one line of the file — ideal for line-number tracking.</p>
+  </div>
+</div>
+
+<!-- b1.c -->
+<div class="program-card" id="b1">
+  <div class="card-header">
+    <span class="prog-title">b1.c — Merge Two Files into One</span>
+    <span class="prog-fn">Functions: fopen(×3) · fgetc · fputc · fclose(×3)</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Opens <code>file1.txt</code> and <code>file2.txt</code> for reading, and <code>merged.txt</code> for writing. Copies each source file character-by-character into the destination.</p>
+    <div class="syntax"><span class="tp">FILE</span> *f1, *f2, *f3;
+f1 = <span class="fn">fopen</span>(<span class="str">"file1.txt"</span>, <span class="str">"r"</span>);
+f2 = <span class="fn">fopen</span>(<span class="str">"file2.txt"</span>, <span class="str">"r"</span>);
+f3 = <span class="fn">fopen</span>(<span class="str">"merged.txt"</span>, <span class="str">"w"</span>);
+
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(f1)) != EOF) <span class="fn">fputc</span>(ch, f3);
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(f2)) != EOF) <span class="fn">fputc</span>(ch, f3);
+
+<span class="fn">fclose</span>(f1); <span class="fn">fclose</span>(f2); <span class="fn">fclose</span>(f3);</div>
+    <p>This demonstrates that <strong>multiple FILE pointers</strong> can be open simultaneously. The fgetc→fputc pipeline is the simplest portable file-copy mechanism in C.</p>
+  </div>
+</div>
+
+<!-- b2.c -->
+<div class="program-card" id="b2">
+  <div class="card-header">
+    <span class="prog-title">b2.c — Count Words in a File</span>
+    <span class="prog-fn">Functions: fopen · fscanf · fclose</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Counts the total number of whitespace-delimited words in <code>file.txt</code> using <code>fscanf()</code>.</p>
+    <div class="syntax"><span class="kw">while</span> (<span class="fn">fscanf</span>(fp, <span class="str">"%99s"</span>, word) == <span class="num">1</span>) {
+    count++;
+}
+<span class="fn">printf</span>(<span class="str">"Total words = %d"</span>, count);</div>
+    <table>
+      <tr><th>fscanf Return</th><th>Meaning</th><th>Loop action</th></tr>
+      <tr><td>1</td><td>Word successfully read</td><td>Continue, increment count</td></tr>
+      <tr><td>EOF</td><td>End of file</td><td>Exit loop</td></tr>
+      <tr><td>0</td><td>Format mismatch</td><td>Exit loop (safe)</td></tr>
+    </table>
+    <div class="info-box">
+      <strong>Format width specifier</strong>
+      <code>%99s</code> limits the read to 99 characters (+ null terminator = 100),
+      preventing buffer overflow when the word array is <code>char word[100]</code>.
+    </div>
+  </div>
+</div>
+
+<!-- b3.c -->
+<div class="program-card" id="b3">
+  <div class="card-header">
+    <span class="prog-title">b3.c — Store Student Records to File</span>
+    <span class="prog-fn">Functions: fopen · scanf · fprintf · fclose</span>
+  </div>
+  <div class="card-body">
+    <p><strong>Purpose:</strong> Accepts multiple student records (Name, ID, Grade) from the user and stores them in <code>students.txt</code> using <code>fprintf()</code>.</p>
+    <div class="syntax"><span class="kw">struct</span> Student { <span class="tp">char</span> name[<span class="num">50</span>]; <span class="tp">int</span> id; <span class="tp">float</span> grade; };
+
+fp = <span class="fn">fopen</span>(<span class="str">"students.txt"</span>, <span class="str">"w"</span>);
+
+<span class="kw">for</span> (i = <span class="num">0</span>; i &lt; n; i++) {
+    <span class="fn">scanf</span>(<span class="str">"%s %d %f"</span>, s.name, &amp;s.id, &amp;s.grade);
+    <span class="fn">fprintf</span>(fp, <span class="str">"%s %d %.2f\n"</span>, s.name, s.id, s.grade);
+}</div>
+    <p>
+      This program demonstrates writing <strong>structured (record-based) data</strong> in
+      text format. Each record is written as one line with space-separated fields,
+      making it easy to read back with <code>fscanf()</code> or parse in other languages.
+    </p>
+    <div class="info-box green">
+      <strong>%.2f format specifier</strong>
+      <code>%.2f</code> formats the float to exactly two decimal places, which is
+      important for consistent file formatting when reading records back.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 9 – COMPARISON TABLE
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="comparison">9. Function Comparison at a Glance</h2>
+<table>
+  <tr>
+    <th>Function</th>
+    <th>Direction</th>
+    <th>Granularity</th>
+    <th>Format</th>
+    <th>Loop condition</th>
+    <th>Used in</th>
+  </tr>
+  <tr>
+    <td><code>fgetc()</code></td>
+    <td><span class="tag read">Read</span></td>
+    <td>1 character</td>
+    <td>None</td>
+    <td><code>!= EOF</code></td>
+    <td>a2.c, b1.c</td>
+  </tr>
+  <tr>
+    <td><code>fgets()</code></td>
+    <td><span class="tag read">Read</span></td>
+    <td>1 line</td>
+    <td>None</td>
+    <td><code>!= NULL</code></td>
+    <td>a2.c*, a4.c</td>
+  </tr>
+  <tr>
+    <td><code>fscanf()</code></td>
+    <td><span class="tag read">Read</span></td>
+    <td>1 token/field</td>
+    <td>Format string</td>
+    <td><code>== 1</code> (or field count)</td>
+    <td>a2.c*, b2.c</td>
+  </tr>
+  <tr>
+    <td><code>fputc()</code></td>
+    <td><span class="tag write">Write</span></td>
+    <td>1 character</td>
+    <td>None</td>
+    <td>—</td>
+    <td>b1.c</td>
+  </tr>
+  <tr>
+    <td><code>fputs()</code></td>
+    <td><span class="tag write">Write</span></td>
+    <td>1 string</td>
+    <td>None</td>
+    <td>—</td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td><code>fprintf()</code></td>
+    <td><span class="tag write">Write</span></td>
+    <td>1 formatted string</td>
+    <td>Format string</td>
+    <td>—</td>
+    <td>a1.c, a3.c, b3.c</td>
+  </tr>
+  <tr>
+    <td><code>fopen()</code></td>
+    <td><span class="tag open">Open</span></td>
+    <td>File</td>
+    <td>Mode string</td>
+    <td>Check != NULL</td>
+    <td>All programs</td>
+  </tr>
+  <tr>
+    <td><code>fclose()</code></td>
+    <td><span class="tag close">Close</span></td>
+    <td>File</td>
+    <td>—</td>
+    <td>—</td>
+    <td>All programs</td>
+  </tr>
+</table>
+<p style="font-size:12px;color:#666;">* a2.c shows fgets and fscanf in commented-out alternative code blocks.</p>
+
+<!-- ══════════════════════════════════════════
+     SECTION 10 – ERRORS & BEST PRACTICES
+══════════════════════════════════════════ -->
+<h2 class="section-title" id="errors">10. Common Errors &amp; Best Practices</h2>
+
+<h3 class="sub-title">10.1 Always Validate fopen()</h3>
+<div class="syntax"><span class="cmt">// ❌ Wrong – no NULL check</span>
+fp = <span class="fn">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+<span class="fn">fgetc</span>(fp);   <span class="cmt">// undefined behaviour if file missing</span>
+
+<span class="cmt">// ✅ Correct</span>
+fp = <span class="fn">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+<span class="kw">if</span> (fp == <span class="kw">NULL</span>) { <span class="fn">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }</div>
+
+<h3 class="sub-title">10.2 Replace gets() with fgets()</h3>
+<div class="syntax"><span class="cmt">// ❌ Dangerous (buffer overflow)</span>
+<span class="fn">gets</span>(str);
+
+<span class="cmt">// ✅ Safe</span>
+<span class="fn">fgets</span>(str, <span class="kw">sizeof</span>(str), stdin);</div>
+
+<h3 class="sub-title">10.3 Store fgetc() Result in int</h3>
+<div class="syntax"><span class="cmt">// ❌ Wrong – may never equal EOF on unsigned-char platforms</span>
+<span class="tp">char</span> ch;
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(fp)) != EOF)  ...
+
+<span class="cmt">// ✅ Correct</span>
+<span class="tp">int</span> ch;
+<span class="kw">while</span> ((ch = <span class="fn">fgetc</span>(fp)) != EOF)  ...</div>
+
+<h3 class="sub-title">10.4 Use Width Specifiers with fscanf</h3>
+<div class="syntax"><span class="cmt">// ❌ Risky – no width limit</span>
+<span class="fn">fscanf</span>(fp, <span class="str">"%s"</span>, word);
+
+<span class="cmt">// ✅ Safe – limits input to buffer size - 1</span>
+<span class="fn">fscanf</span>(fp, <span class="str">"%99s"</span>, word);   <span class="cmt">// for char word[100]</span></div>
+
+<h3 class="sub-title">10.5 Always Close Files</h3>
+<div class="syntax"><span class="cmt">// After all operations are done:</span>
+<span class="fn">fclose</span>(fp);   <span class="cmt">// flushes internal buffer → data guaranteed on disk</span></div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 11 – SUMMARY
+══════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 class="section-title" id="summary">11. Summary</h2>
+<p>
+  The seven lab programs collectively cover the complete spectrum of C file I/O
+  operations. The table below maps each program to its primary educational goal:
+</p>
+<table>
+  <tr><th>Program</th><th>Core Concept</th><th>Primary Functions</th></tr>
+  <tr><td>a1.c</td><td>Writing formatted text to a new file</td><td>fopen("w"), fprintf, fclose</td></tr>
+  <tr><td>a2.c</td><td>Three methods to read a file: char / line / word</td><td>fgetc, fgets, fscanf</td></tr>
+  <tr><td>a3.c</td><td>Appending to a file without overwriting</td><td>fopen("a"), fprintf, fclose</td></tr>
+  <tr><td>a4.c</td><td>Line-by-line search using string functions</td><td>fgets, strstr, fclose</td></tr>
+  <tr><td>b1.c</td><td>Character-level I/O; merging multiple files</td><td>fgetc, fputc, fclose ×3</td></tr>
+  <tr><td>b2.c</td><td>Token-based reading; word counting</td><td>fscanf, fclose</td></tr>
+  <tr><td>b3.c</td><td>Structured record storage using structs</td><td>fprintf (multi-field), fclose</td></tr>
+</table>
+
+<div class="info-box green">
+  <strong>Key Takeaways</strong>
+  <ul style="margin-top:6px;padding-left:18px;">
+    <li>Always include <code>&lt;stdio.h&gt;</code> for file I/O functions.</li>
+    <li>Every file must be opened with <code>fopen()</code> and the returned pointer checked for NULL.</li>
+    <li>Use <code>"r"</code> to read, <code>"w"</code> to write (truncates), <code>"a"</code> to append.</li>
+    <li>Use <code>fgetc/fputc</code> for character-level, <code>fgets</code> for line-level, <code>fscanf/fprintf</code> for formatted I/O.</li>
+    <li>Always close files with <code>fclose()</code> to flush buffers and free resources.</li>
+    <li>Prefer <code>fgets()</code> over <code>gets()</code> to avoid buffer overflows.</li>
+  </ul>
+</div>
+
+<div class="footer-note">
+  Darshan University &nbsp;|&nbsp; Sem-4 TA (BSC-H) &nbsp;|&nbsp; LAB-16 &nbsp;|&nbsp;
+  C File Handling — Reading &amp; Writing Functions &nbsp;|&nbsp; March 2026
+</div>
+
+</body>
+</html>
