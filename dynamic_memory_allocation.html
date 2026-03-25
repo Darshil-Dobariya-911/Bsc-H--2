@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Memory Allocation in C – Lab 17</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0f4ff;
+    color: #1e293b;
+    line-height: 1.7;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 60px 70px;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    text-align: center;
+    padding: 60px 0 50px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 60%, #7c3aed 100%);
+    border-radius: 18px;
+    color: #fff;
+    margin-bottom: 50px;
+  }
+  .cover .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 30px;
+    padding: 6px 22px;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .cover h1 { font-size: 36px; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+  .cover p  { font-size: 15px; opacity: .85; }
+  .cover .meta { margin-top: 30px; display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+  .cover .meta span { font-size: 13px; opacity: .75; }
+  .cover .meta strong { display: block; font-size: 16px; opacity: 1; }
+
+  /* ── section headings ── */
+  h2 {
+    font-size: 22px; font-weight: 700;
+    color: #1e3a5f;
+    border-left: 5px solid #2563eb;
+    padding-left: 14px;
+    margin: 40px 0 16px;
+  }
+  h3 { font-size: 17px; font-weight: 600; color: #334155; margin: 28px 0 10px; }
+  p  { margin-bottom: 12px; font-size: 15px; }
+
+  /* ── info boxes ── */
+  .box {
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 18px 0;
+    font-size: 14.5px;
+  }
+  .box.blue   { background: #eff6ff; border-left: 4px solid #2563eb; }
+  .box.purple { background: #f5f3ff; border-left: 4px solid #7c3aed; }
+  .box.green  { background: #f0fdf4; border-left: 4px solid #16a34a; }
+  .box.red    { background: #fff1f2; border-left: 4px solid #e11d48; }
+  .box.amber  { background: #fffbeb; border-left: 4px solid #d97706; }
+  .box strong { display: block; margin-bottom: 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .8px; opacity: .7; }
+
+  /* ── code blocks ── */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 22px 26px;
+    overflow-x: auto;
+    font-family: 'Fira Code', monospace;
+    font-size: 13.5px;
+    line-height: 1.8;
+    margin: 14px 0 22px;
+    position: relative;
+  }
+  pre .label {
+    position: absolute; top: 10px; right: 14px;
+    background: #1e3a5f; color: #94a3b8;
+    font-size: 11px; padding: 2px 10px; border-radius: 6px;
+    letter-spacing: .8px; text-transform: uppercase;
+  }
+  .kw  { color: #7dd3fc; }   /* keywords */
+  .fn  { color: #86efac; }   /* functions */
+  .cm  { color: #64748b; font-style: italic; }   /* comments */
+  .str { color: #fca5a5; }   /* strings */
+  .num { color: #fcd34d; }   /* numbers */
+  .ty  { color: #c4b5fd; }   /* types */
+
+  /* ── memory diagram ── */
+  .mem-diagram {
+    display: flex; gap: 0; margin: 24px 0;
+    border-radius: 12px; overflow: hidden;
+    border: 2px solid #cbd5e1;
+    font-size: 13px;
+  }
+  .mem-seg {
+    flex: 1; padding: 16px 10px; text-align: center;
+  }
+  .seg-label { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .seg-items { font-size: 12px; line-height: 1.7; color: #475569; }
+  .seg-code    { background: #dbeafe; }
+  .seg-globals { background: #ede9fe; }
+  .seg-heap    { background: #dcfce7; }
+  .seg-stack   { background: #fef9c3; }
+
+  /* ── function table ── */
+  table { width: 100%; border-collapse: collapse; margin: 18px 0 28px; font-size: 14px; }
+  th { background: #1e3a5f; color: #fff; padding: 12px 16px; text-align: left; }
+  td { padding: 11px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td code { background: #f1f5f9; border-radius: 5px; padding: 1px 6px; font-family: 'Fira Code', monospace; font-size: 13px; }
+
+  /* ── step list ── */
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 10px; font-size: 14.5px; }
+  ol.steps li span { background: #2563eb; color: #fff; font-weight: 700; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 8px; vertical-align: middle; }
+
+  /* ── program cards ── */
+  .prog-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    margin: 28px 0;
+    overflow: hidden;
+  }
+  .prog-card .pc-header {
+    background: linear-gradient(90deg, #1e3a5f, #2563eb);
+    color: #fff;
+    padding: 14px 22px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .prog-card .pc-num {
+    background: rgba(255,255,255,.2);
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .8px; text-transform: uppercase;
+  }
+  .prog-card .pc-title { font-size: 17px; font-weight: 700; }
+  .prog-card .pc-body { padding: 20px 22px; }
+  .prog-card .pc-body pre { margin: 12px 0; }
+
+  /* ── comparison strip ── */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .compare .side { border-radius: 12px; padding: 18px; }
+  .compare .side h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+  .compare .side ul { padding-left: 18px; font-size: 13.5px; }
+  .compare .side ul li { margin-bottom: 6px; }
+  .compare .bad  { background: #fff1f2; border: 1px solid #fecdd3; }
+  .compare .good { background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+  /* ── pitfall grid ── */
+  .pitfalls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .pitfall   { border-radius: 12px; padding: 16px 18px; background: #fff1f2; border: 1px solid #fecdd3; }
+  .pitfall h4 { font-size: 14px; font-weight: 700; color: #be123c; margin-bottom: 6px; }
+  .pitfall p  { font-size: 13px; margin: 0; }
+
+  /* ── footer ── */
+  .footer {
+    margin-top: 60px;
+    border-top: 2px solid #e2e8f0;
+    padding-top: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+  /* ── divider ── */
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 40px 0; }
+
+  @media print {
+    body { background: #fff; }
+    .page { padding: 30px 40px; }
+    .prog-card, .box, pre { break-inside: avoid; }
+    h2 { break-before: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="badge">Lab – 17 &nbsp;|&nbsp; Theory of Algorithms (BSC-H)</div>
+    <h1>Dynamic Memory Allocation<br>in C</h1>
+    <p>Darshan University &nbsp;·&nbsp; Semester 4</p>
+    <div class="meta">
+      <div><span>Subject</span><strong>Theory of Algorithms</strong></div>
+      <div><span>Lab</span><strong>17</strong></div>
+      <div><span>Topic</span><strong>malloc · calloc · realloc · free</strong></div>
+    </div>
+  </div>
+
+  <!-- 1. INTRODUCTION -->
+  <h2>1. What is Dynamic Memory Allocation?</h2>
+  <p>
+    In C, memory can be managed in two ways: <strong>statically</strong> (size fixed at compile time) or
+    <strong>dynamically</strong> (size decided at run time). Dynamic Memory Allocation (DMA) lets a program
+    request memory from the <em>heap</em> while it is running, use it, and then release it back.
+  </p>
+
+  <div class="box blue">
+    <strong>Key Insight</strong>
+    When you write <code>int arr[10];</code> the compiler reserves exactly 40 bytes on the <em>stack</em> before 
+    the program even starts. With DMA you can ask: "Give me space for exactly <code>n</code> integers" — 
+    where <code>n</code> is typed by the user at run-time.
+  </div>
+
+  <!-- 2. MEMORY LAYOUT -->
+  <h2>2. Memory Layout of a C Program</h2>
+  <p>Every running C program uses four major memory regions:</p>
+
+  <div class="mem-diagram">
+    <div class="mem-seg seg-code">
+      <div class="seg-label">Code</div>
+      <div class="seg-items">Compiled instructions<br>(read-only)</div>
+    </div>
+    <div class="mem-seg seg-globals">
+      <div class="seg-label">Data / BSS</div>
+      <div class="seg-items">Global &amp; static<br>variables</div>
+    </div>
+    <div class="mem-seg seg-heap">
+      <div class="seg-label">Heap ⬆</div>
+      <div class="seg-items">malloc / calloc<br>memory lives here</div>
+    </div>
+    <div class="mem-seg seg-stack">
+      <div class="seg-label">Stack ⬇</div>
+      <div class="seg-items">Local variables<br>Function call frames</div>
+    </div>
+  </div>
+
+  <div class="box amber">
+    <strong>Heap vs Stack</strong>
+    The <strong>stack</strong> is managed automatically — memory is freed when a function returns.
+    The <strong>heap</strong> is manual — you allocate with <code>malloc()</code> and <em>must</em> free with <code>free()</code>.
+    Forgetting to free causes a <em>memory leak</em>.
+  </div>
+
+  <!-- 3. FUNCTIONS -->
+  <h2>3. DMA Functions in <code>&lt;stdlib.h&gt;</code></h2>
+  <p>All four DMA functions are declared in <code>&lt;stdlib.h&gt;</code>. Below is a detailed reference for each function — syntax, parameters, return value, and usage notes.</p>
+
+  <!-- Quick overview table -->
+  <table>
+    <tr><th>Function</th><th>Prototype</th><th>Initialises Memory?</th><th>Use When</th></tr>
+    <tr><td><code>malloc</code></td><td><code>void* malloc(size_t size)</code></td><td>❌ No — garbage</td><td>You fill every byte yourself</td></tr>
+    <tr><td><code>calloc</code></td><td><code>void* calloc(size_t n, size_t size)</code></td><td>✅ Yes — zeros</td><td>You need zero-initialised memory</td></tr>
+    <tr><td><code>realloc</code></td><td><code>void* realloc(void* ptr, size_t size)</code></td><td>❌ No (new bytes)</td><td>You need to resize an existing block</td></tr>
+    <tr><td><code>free</code></td><td><code>void free(void* ptr)</code></td><td>—</td><td>Releasing heap memory when done</td></tr>
+  </table>
+
+  <!-- ── MALLOC ── -->
+  <h3>① &nbsp;<code>malloc()</code> — Memory Allocate</h3>
+  <pre><span class="label">Syntax</span><span class="ty">void</span> *<span class="fn">malloc</span>(<span class="ty">size_t</span> size);</pre>
+  <table>
+    <tr><th>Item</th><th>Detail</th></tr>
+    <tr><td><strong>Header</strong></td><td><code>#include &lt;stdlib.h&gt;</code></td></tr>
+    <tr><td><strong>Parameter</strong></td><td><code>size</code> — total number of <em>bytes</em> to allocate on the heap</td></tr>
+    <tr><td><strong>Returns</strong></td><td><code>void*</code> pointer to the first byte of the block; <code>NULL</code> on failure</td></tr>
+    <tr><td><strong>Initialises?</strong></td><td>❌ No — contents are indeterminate (garbage values)</td></tr>
+    <tr><td><strong>Must free?</strong></td><td>✅ Yes — call <code>free(ptr)</code> when done</td></tr>
+  </table>
+  <pre><span class="label">Usage</span><span class="ty">int</span> *arr = (<span class="ty">int</span> *)<span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="ty">int</span>)); <span class="cm">// allocate n ints</span>
+<span class="kw">if</span> (arr == <span class="num">NULL</span>) { <span class="fn">printf</span>(<span class="str">"Failed\n"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+<span class="cm">/* ... use arr ... */</span>
+<span class="fn">free</span>(arr);  arr = <span class="num">NULL</span>;</pre>
+  <div class="box amber">
+    <strong>⚠ Uninitialised Memory</strong>
+    Reading <code>malloc</code>'d memory before writing gives unpredictable values.
+    Always write before read. Use <code>calloc</code> if you need zero-initialised memory.
+  </div>
+
+  <!-- ── CALLOC ── -->
+  <h3>② &nbsp;<code>calloc()</code> — Contiguous Allocate</h3>
+  <pre><span class="label">Syntax</span><span class="ty">void</span> *<span class="fn">calloc</span>(<span class="ty">size_t</span> n, <span class="ty">size_t</span> size);</pre>
+  <table>
+    <tr><th>Item</th><th>Detail</th></tr>
+    <tr><td><strong>Header</strong></td><td><code>#include &lt;stdlib.h&gt;</code></td></tr>
+    <tr><td><strong>Parameter 1</strong></td><td><code>n</code> — number of elements to allocate</td></tr>
+    <tr><td><strong>Parameter 2</strong></td><td><code>size</code> — size of each element in bytes (use <code>sizeof</code>)</td></tr>
+    <tr><td><strong>Total bytes</strong></td><td><code>n × size</code> bytes allocated</td></tr>
+    <tr><td><strong>Returns</strong></td><td><code>void*</code> pointer to zero-filled block; <code>NULL</code> on failure</td></tr>
+    <tr><td><strong>Initialises?</strong></td><td>✅ Yes — every bit set to <code>0</code></td></tr>
+    <tr><td><strong>Must free?</strong></td><td>✅ Yes</td></tr>
+  </table>
+  <pre><span class="label">Usage</span><span class="ty">int</span> *arr = (<span class="ty">int</span> *)<span class="fn">calloc</span>(n, <span class="kw">sizeof</span>(<span class="ty">int</span>)); <span class="cm">// n ints, all = 0</span>
+<span class="kw">if</span> (arr == <span class="num">NULL</span>) { <span class="fn">printf</span>(<span class="str">"Failed\n"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+<span class="cm">/* arr[0] == 0, arr[1] == 0, ... guaranteed */</span>
+<span class="fn">free</span>(arr);  arr = <span class="num">NULL</span>;</pre>
+  <div class="box blue">
+    <strong>calloc vs malloc</strong>
+    <code>calloc(n, sizeof(int))</code> ≡ <code>malloc(n*sizeof(int))</code> + <code>memset(arr, 0, n*sizeof(int))</code>
+    — but <code>calloc</code> also guards against integer overflow in <code>n × size</code>.
+  </div>
+
+  <!-- ── REALLOC ── -->
+  <h3>③ &nbsp;<code>realloc()</code> — Re-Allocate (Resize)</h3>
+  <pre><span class="label">Syntax</span><span class="ty">void</span> *<span class="fn">realloc</span>(<span class="ty">void</span> *ptr, <span class="ty">size_t</span> newSize);</pre>
+  <table>
+    <tr><th>Item</th><th>Detail</th></tr>
+    <tr><td><strong>Header</strong></td><td><code>#include &lt;stdlib.h&gt;</code></td></tr>
+    <tr><td><strong>Parameter 1</strong></td><td><code>ptr</code> — pointer to an existing heap block (from malloc / calloc / realloc)</td></tr>
+    <tr><td><strong>Parameter 2</strong></td><td><code>newSize</code> — desired new total size in bytes</td></tr>
+    <tr><td><strong>Returns</strong></td><td>New <code>void*</code> (may be same or different address); <code>NULL</code> on failure</td></tr>
+    <tr><td><strong>Old data</strong></td><td>Preserved up to <code>min(oldSize, newSize)</code> bytes</td></tr>
+    <tr><td><strong>Special: ptr = NULL</strong></td><td>Behaves exactly like <code>malloc(newSize)</code></td></tr>
+    <tr><td><strong>Special: newSize = 0</strong></td><td>Behaves like <code>free(ptr)</code></td></tr>
+    <tr><td><strong>On failure</strong></td><td>Returns <code>NULL</code> — <strong>original block is NOT freed</strong></td></tr>
+  </table>
+  <pre><span class="label">Usage (safe pattern)</span><span class="ty">int</span> *tmp = (<span class="ty">int</span> *)<span class="fn">realloc</span>(arr, newN * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+<span class="kw">if</span> (tmp == <span class="num">NULL</span>) {
+    <span class="fn">free</span>(arr);          <span class="cm">// don't leak original</span>
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+arr = tmp;             <span class="cm">// safe to reassign</span></pre>
+  <div class="box red">
+    <strong>⚠ Never assign realloc directly to the same pointer</strong>
+    <code>arr = realloc(arr, …)</code> — if realloc returns NULL, you lose the original pointer and leak memory.
+    Always use a temporary variable, check it, then assign.
+  </div>
+
+  <!-- ── FREE ── -->
+  <h3>④ &nbsp;<code>free()</code> — Deallocate Memory</h3>
+  <pre><span class="label">Syntax</span><span class="ty">void</span> <span class="fn">free</span>(<span class="ty">void</span> *ptr);</pre>
+  <table>
+    <tr><th>Item</th><th>Detail</th></tr>
+    <tr><td><strong>Header</strong></td><td><code>#include &lt;stdlib.h&gt;</code></td></tr>
+    <tr><td><strong>Parameter</strong></td><td><code>ptr</code> — pointer previously returned by <code>malloc</code>, <code>calloc</code>, or <code>realloc</code></td></tr>
+    <tr><td><strong>Returns</strong></td><td><code>void</code> — nothing</td></tr>
+    <tr><td><strong>Clears memory?</strong></td><td>❌ No — data may still physically exist until overwritten</td></tr>
+    <tr><td><strong>Modifies ptr?</strong></td><td>❌ No — pointer variable still holds old (now invalid) address</td></tr>
+    <tr><td><strong>free(NULL)</strong></td><td>✅ Safe — guaranteed no-op by the C standard</td></tr>
+    <tr><td><strong>Double free</strong></td><td>❌ Undefined behaviour — crashes or corrupts heap</td></tr>
+  </table>
+  <pre><span class="label">Usage (best practice)</span><span class="fn">free</span>(ptr);    <span class="cm">// release memory</span>
+ptr = <span class="num">NULL</span>;   <span class="cm">// prevent dangling pointer — second free(NULL) is safe</span></pre>
+  <div class="box purple">
+    <strong>Memory Lifecycle</strong>
+    <code>malloc / calloc</code> → &nbsp;use the memory&nbsp; → <code>realloc</code> (optional resize) → <code>free</code> → <code>ptr = NULL</code>
+  </div>
+
+  <!-- 4. malloc deep dive -->
+  <h2>4. How <code>malloc()</code> Works – Step by Step</h2>
+  <ol class="steps">
+    <li><span>1</span> You call <code>malloc(n * sizeof(int))</code>.</li>
+    <li><span>2</span> The C runtime asks the OS for a contiguous block of <code>n × 4</code> bytes on the heap.</li>
+    <li><span>3</span> <code>malloc</code> returns a <code>void*</code> pointer to the start of that block, or <code>NULL</code> on failure.</li>
+    <li><span>4</span> You cast the <code>void*</code> to the desired type (e.g., <code>int*</code>).</li>
+    <li><span>5</span> You use the memory like a normal array.</li>
+    <li><span>6</span> You call <code>free(ptr)</code> when done — the block returns to the heap pool.</li>
+  </ol>
+
+  <div class="box purple">
+    <strong>Why cast?</strong>
+    <code>malloc</code> always returns <code>void*</code> — a generic pointer. Casting <code>(int *)</code> tells 
+    the compiler "treat these bytes as integers." In C this cast is optional but considered good style.
+  </div>
+
+  <hr>
+
+  <!-- PROGRAM A1 -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program A1</div>
+      <div class="pc-title">Dynamic 1-D Array using <code>malloc()</code></div>
+    </div>
+    <div class="pc-body">
+      <h3>Objective</h3>
+      <p>Allocate a 1-D integer array of user-defined size at run-time, store elements, display them, and free the memory.</p>
+
+      <pre><span class="label">a1.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="ty">int</span> n, i;
+    <span class="ty">int</span> *arr;
+
+    <span class="fn">printf</span>(<span class="str">"Enter size of array: "</span>);
+    <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;n);
+
+    arr = (<span class="ty">int</span> *)<span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="ty">int</span>)); <span class="cm">// allocate n integers</span>
+
+    <span class="kw">if</span> (arr == <span class="num">NULL</span>) {               <span class="cm">// always check!</span>
+        <span class="fn">printf</span>(<span class="str">"Memory allocation failed!\n"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+
+    <span class="fn">printf</span>(<span class="str">"Enter %d elements:\n"</span>, n);
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; n; i++)
+        <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;arr[i]);
+
+    <span class="fn">printf</span>(<span class="str">"Array elements are:\n"</span>);
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; n; i++)
+        <span class="fn">printf</span>(<span class="str">"%d "</span>, arr[i]);
+
+    <span class="fn">free</span>(arr);     <span class="cm">// release memory back to heap</span>
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>Line-by-Line Explanation</h3>
+      <table>
+        <tr><th>Line</th><th>Explanation</th></tr>
+        <tr><td><code>int *arr;</code></td><td>Declares a pointer. No memory allocated yet — just a variable to hold an address.</td></tr>
+        <tr><td><code>malloc(n * sizeof(int))</code></td><td>Requests <code>n × 4</code> bytes from the heap (sizeof int = 4 bytes on most systems).</td></tr>
+        <tr><td><code>(int *)</code> cast</td><td>Converts the generic <code>void*</code> return into an <code>int*</code> so we can use array indexing.</td></tr>
+        <tr><td><code>if (arr == NULL)</code></td><td>Critical safety check. If allocation fails (e.g., out of memory), <code>malloc</code> returns NULL.</td></tr>
+        <tr><td><code>arr[i]</code></td><td>The pointer is used exactly like an array. Internally, <code>arr[i]</code> is <code>*(arr + i)</code>.</td></tr>
+        <tr><td><code>free(arr)</code></td><td>Returns the allocated block to the heap. Without this, we have a <em>memory leak</em>.</td></tr>
+      </table>
+
+      <div class="box green">
+        <strong>Sample Run</strong>
+        Enter size of array: 4 &nbsp;→&nbsp; Elements: 10 20 30 40 &nbsp;→&nbsp; Output: 10 20 30 40
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAM A2 -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program A2</div>
+      <div class="pc-title">Dynamic 2-D Matrix – Sum of Elements</div>
+    </div>
+    <div class="pc-body">
+      <h3>Objective</h3>
+      <p>Allocate a 2-D matrix of <em>m × n</em> integers dynamically using a pointer-to-pointer, read elements, compute their sum, and properly free everything.</p>
+
+      <pre><span class="label">a2.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="ty">int</span> m, n, i, j, sum = <span class="num">0</span>;
+    <span class="ty">int</span> **matrix;       <span class="cm">// pointer to pointer (2-D)</span>
+
+    <span class="fn">printf</span>(<span class="str">"Enter rows and columns: "</span>);
+    <span class="fn">scanf</span>(<span class="str">"%d %d"</span>, &amp;m, &amp;n);
+
+    <span class="cm">// Step 1: allocate array of m row-pointers</span>
+    matrix = (<span class="ty">int</span> **)<span class="fn">malloc</span>(m * <span class="kw">sizeof</span>(<span class="ty">int</span> *));
+
+    <span class="cm">// Step 2: allocate each row of n columns</span>
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; m; i++)
+        matrix[i] = (<span class="ty">int</span> *)<span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+
+    <span class="fn">printf</span>(<span class="str">"Enter matrix elements:\n"</span>);
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; m; i++)
+        <span class="kw">for</span>(j = <span class="num">0</span>; j &lt; n; j++) {
+            <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;matrix[i][j]);
+            sum += matrix[i][j];
+        }
+
+    <span class="fn">printf</span>(<span class="str">"Sum of all elements = %d\n"</span>, sum);
+
+    <span class="cm">// Free in reverse order: rows first, then the pointer array</span>
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; m; i++)
+        <span class="fn">free</span>(matrix[i]);
+    <span class="fn">free</span>(matrix);
+
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>2-D Memory Model</h3>
+      <p>A 2-D matrix is NOT one big block. It is an <strong>array of pointers</strong>, each pointing to its own row:</p>
+      <pre style="background:#1e293b; font-size:13px;">matrix  →  [ ptr0 | ptr1 | ptr2 ]        ← 1st malloc (array of pointers)
+              |       |       |
+              ↓       ↓       ↓
+           [c0,c1] [c0,c1] [c0,c1]       ← each row: separate malloc</pre>
+
+      <h3>Key Points</h3>
+      <table>
+        <tr><th>Concept</th><th>Detail</th></tr>
+        <tr><td><code>int **matrix</code></td><td>A pointer to a pointer — stores the address of the row-pointer array.</td></tr>
+        <tr><td>First <code>malloc</code></td><td><code>m * sizeof(int*)</code> — space for <em>m</em> pointers (one per row).</td></tr>
+        <tr><td>Second <code>malloc</code> (loop)</td><td>Each <code>matrix[i]</code> gets its own block of <em>n</em> integers.</td></tr>
+        <tr><td>Freeing order</td><td>Must free each <code>matrix[i]</code> <em>before</em> freeing <code>matrix</code>. Doing it in reverse avoids dangling pointer issues.</td></tr>
+      </table>
+
+      <div class="box amber">
+        <strong>Common Mistake</strong>
+        Calling <code>free(matrix)</code> first loses the row pointers, causing a memory leak of every individual row.
+        Always free child allocations before parent!
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAM B1 -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program B1</div>
+      <div class="pc-title">Dynamic String – Reverse using <code>malloc()</code></div>
+    </div>
+    <div class="pc-body">
+      <h3>Objective</h3>
+      <p>Dynamically allocate a character buffer based on user-specified length, read a string, reverse it in-place without extra memory, and free the buffer.</p>
+
+      <pre><span class="label">b1.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="ty">int</span> n, i;
+    <span class="ty">char</span> *str;
+
+    <span class="fn">printf</span>(<span class="str">"Enter length of string: "</span>);
+    <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;n);
+
+    <span class="cm">// +1 for the null terminator '\0'</span>
+    str = (<span class="ty">char</span> *)<span class="fn">malloc</span>((n + <span class="num">1</span>) * <span class="kw">sizeof</span>(<span class="ty">char</span>));
+
+    <span class="kw">if</span> (str == <span class="num">NULL</span>) {
+        <span class="fn">printf</span>(<span class="str">"Memory allocation failed!\n"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+
+    <span class="fn">printf</span>(<span class="str">"Enter string: "</span>);
+    <span class="fn">scanf</span>(<span class="str">" %[^\n]"</span>, str);   <span class="cm">// reads full line including spaces</span>
+
+    <span class="fn">printf</span>(<span class="str">"Original string: %s\n"</span>, str);
+
+    <span class="cm">// In-place reversal using two-pointer swap</span>
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; n / <span class="num">2</span>; i++) {
+        <span class="ty">char</span> temp   = str[i];
+        str[i]       = str[n - i - <span class="num">1</span>];
+        str[n-i-<span class="num">1</span>]  = temp;
+    }
+
+    <span class="fn">printf</span>(<span class="str">"Reversed string: %s\n"</span>, str);
+
+    <span class="fn">free</span>(str);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>Critical Concepts</h3>
+      <table>
+        <tr><th>Detail</th><th>Why It Matters</th></tr>
+        <tr><td><code>n + 1</code> bytes</td><td>Every C string ends with a null character <code>'\0'</code>. Allocating only <code>n</code> bytes would cause a buffer overrun.</td></tr>
+        <tr><td><code>sizeof(char) == 1</code></td><td>Always 1 byte. Writing it explicitly makes the code self-documenting.</td></tr>
+        <tr><td><code>%[^\n]</code> format</td><td>Reads the entire line including spaces, unlike <code>%s</code> which stops at whitespace.</td></tr>
+        <tr><td>In-place reversal</td><td>Uses only one <code>char temp</code> – no second buffer. Iterates only half the array (n/2 swaps).</td></tr>
+      </table>
+
+      <div class="box green">
+        <strong>Sample Run</strong>
+        Length: 5 &nbsp;|&nbsp; String: "Hello" &nbsp;→&nbsp; Reversed: "olleH"
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAM C0: malloc -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program C0</div>
+      <div class="pc-title">Heap Allocation using <code>malloc()</code> – Deep Dive</div>
+    </div>
+    <div class="pc-body">
+      <h3>Prototype &amp; Signature</h3>
+      <pre><span class="label">stdlib.h</span><span class="cm">/* Prototype */</span>
+<span class="ty">void</span> *<span class="fn">malloc</span>(<span class="ty">size_t</span> size);
+
+<span class="cm">/* size   → total number of bytes to allocate
+   returns → void* pointer to first byte of block,
+             or NULL if allocation fails           */</span></pre>
+
+      <h3>Complete Example – Student Marks</h3>
+      <p>Allocate an array of student marks at run-time, compute the average, then release the memory.</p>
+
+      <pre><span class="label">malloc_demo.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="ty">int</span>   n, i;
+    <span class="ty">float</span> sum = <span class="num">0</span>, avg;
+    <span class="ty">int</span>  *marks;
+
+    <span class="fn">printf</span>(<span class="str">"Enter number of students: "</span>);
+    <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;n);
+
+    <span class="cm">/* malloc returns void* — cast to int* */</span>
+    marks = (<span class="ty">int</span> *)<span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+
+    <span class="cm">/* ALWAYS check before using the pointer */</span>
+    <span class="kw">if</span> (marks == <span class="num">NULL</span>) {
+        <span class="fn">printf</span>(<span class="str">"Memory allocation failed!\n"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+
+    <span class="fn">printf</span>(<span class="str">"Enter marks for %d students:\n"</span>, n);
+    <span class="kw">for</span> (i = <span class="num">0</span>; i &lt; n; i++) {
+        <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;marks[i]);
+        sum += marks[i];
+    }
+
+    avg = sum / n;
+    <span class="fn">printf</span>(<span class="str">"Average marks = %.2f\n"</span>, avg);
+
+    <span class="fn">free</span>(marks);   <span class="cm">// release heap memory</span>
+    marks = <span class="num">NULL</span>; <span class="cm">// avoid dangling pointer</span>
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>How malloc() Works – Internals</h3>
+      <ol class="steps">
+        <li><span>1</span> <code>malloc(n * sizeof(int))</code> computes the total bytes needed.</li>
+        <li><span>2</span> The C runtime scans its internal <em>free-list</em> on the heap for a large enough block.</li>
+        <li><span>3</span> If found, it marks that block as "used" and returns a pointer to it.</li>
+        <li><span>4</span> If not found, it requests more memory from the OS via <code>sbrk()</code> / <code>mmap()</code>.</li>
+        <li><span>5</span> The returned <code>void*</code> is cast to the required type (<code>int*</code>, <code>char*</code>, etc.).</li>
+        <li><span>6</span> Contents are <strong>uninitialised</strong> — contain whatever was previously in that memory.</li>
+      </ol>
+
+      <table>
+        <tr><th>Aspect</th><th>Detail</th></tr>
+        <tr><td>Header required</td><td><code>#include &lt;stdlib.h&gt;</code></td></tr>
+        <tr><td>Return type</td><td><code>void*</code> — must be cast to the correct pointer type</td></tr>
+        <tr><td>On failure</td><td>Returns <code>NULL</code> — always check before dereferencing</td></tr>
+        <tr><td>Initialisation</td><td>❌ No — memory contains garbage (random old values)</td></tr>
+        <tr><td>Lifetime</td><td>Persists until <code>free()</code> is called — outlives function scope</td></tr>
+        <tr><td>Best for</td><td>When you will fill every element immediately (no need for zero-init)</td></tr>
+      </table>
+
+      <div class="box amber">
+        <strong>⚠ malloc does NOT initialise memory</strong>
+        Reading from a freshly <code>malloc</code>'d block without writing first gives unpredictable (garbage) values.
+        If you need zeroed memory, use <code>calloc()</code> instead.
+      </div>
+
+      <div class="box green">
+        <strong>Sample Run</strong>
+        Students: 3 &nbsp;|&nbsp; Marks: 80 90 70 &nbsp;→&nbsp; Average marks = 80.00
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAM C1: calloc -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program C1</div>
+      <div class="pc-title">Zero-Initialised Array using <code>calloc()</code></div>
+    </div>
+    <div class="pc-body">
+      <h3>Objective</h3>
+      <p>Use <code>calloc()</code> to allocate an integer array that is automatically initialised to zero, demonstrating the key difference from <code>malloc()</code>.</p>
+
+      <pre><span class="label">calloc_demo.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="ty">int</span> n, i;
+    <span class="ty">int</span> *arr;
+
+    <span class="fn">printf</span>(<span class="str">"Enter number of elements: "</span>);
+    <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;n);
+
+    <span class="cm">/* calloc(count, size_per_element) — initialises all bytes to 0 */</span>
+    arr = (<span class="ty">int</span> *)<span class="fn">calloc</span>(n, <span class="kw">sizeof</span>(<span class="ty">int</span>));
+
+    <span class="kw">if</span> (arr == <span class="num">NULL</span>) {
+        <span class="fn">printf</span>(<span class="str">"Memory allocation failed!\n"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+
+    <span class="cm">/* All elements are already 0 — no explicit initialisation needed */</span>
+    <span class="fn">printf</span>(<span class="str">"Default values after calloc:\n"</span>);
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; n; i++)
+        <span class="fn">printf</span>(<span class="str">"%d "</span>, arr[i]);   <span class="cm">// prints: 0 0 0 0 ...</span>
+
+    <span class="fn">printf</span>(<span class="str">"\nEnter %d new values:\n"</span>, n);
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; n; i++)
+        <span class="fn">scanf</span>(<span class="str">"%d"</span>, &amp;arr[i]);
+
+    <span class="fn">printf</span>(<span class="str">"Updated array:\n"</span>);
+    <span class="kw">for</span>(i = <span class="num">0</span>; i &lt; n; i++)
+        <span class="fn">printf</span>(<span class="str">"%d "</span>, arr[i]);
+
+    <span class="fn">free</span>(arr);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>calloc vs malloc – Key Differences</h3>
+      <table>
+        <tr><th>Aspect</th><th><code>malloc(size)</code></th><th><code>calloc(n, size)</code></th></tr>
+        <tr><td>Arguments</td><td>Total bytes as one value</td><td>Count &amp; size separately (safer)</td></tr>
+        <tr><td>Initialisation</td><td>❌ Garbage / unpredictable values</td><td>✅ All bytes set to <code>0</code></td></tr>
+        <tr><td>Speed</td><td>Slightly faster (no zeroing)</td><td>Slightly slower (fills with zeros)</td></tr>
+        <tr><td>Use case</td><td>When you will overwrite every byte anyway</td><td>Counters, flags, accumulators</td></tr>
+        <tr><td>Overflow safety</td><td>You must compute <code>n*size</code> yourself</td><td>Runtime checks for multiplication overflow</td></tr>
+      </table>
+
+      <div class="box blue">
+        <strong>Equivalent Expressions</strong>
+        <code>calloc(n, sizeof(int))</code> is <em>functionally equivalent</em> to
+        <code>malloc(n * sizeof(int))</code> followed by <code>memset(arr, 0, n * sizeof(int))</code> —
+        but calloc does both in one step and is safer.
+      </div>
+
+      <div class="box green">
+        <strong>Sample Run</strong>
+        n = 4 &nbsp;→&nbsp; Default: 0 0 0 0 &nbsp;→&nbsp; Enter: 5 10 15 20 &nbsp;→&nbsp; Updated: 5 10 15 20
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAM C2: realloc -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program C2</div>
+      <div class="pc-title">Resizing Memory at Runtime using <code>realloc()</code></div>
+    </div>
+    <div class="pc-body">
+      <h3>Objective</h3>
+      <p>Start with a small array, fill it, then expand its size using <code>realloc()</code> to add more elements — without losing original data.</p>
+
+      <pre><span class="label">realloc_demo.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="ty">int</span> i;
+
+    <span class="cm">/* Step 1: allocate space for 3 integers */</span>
+    <span class="ty">int</span> *arr = (<span class="ty">int</span> *)<span class="fn">malloc</span>(<span class="num">3</span> * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+    <span class="kw">if</span> (!arr) { <span class="fn">printf</span>(<span class="str">"malloc failed\n"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+    arr[<span class="num">0</span>] = <span class="num">10</span>;  arr[<span class="num">1</span>] = <span class="num">20</span>;  arr[<span class="num">2</span>] = <span class="num">30</span>;
+    <span class="fn">printf</span>(<span class="str">"Original (3 elements): "</span>);
+    <span class="kw">for</span>(i=<span class="num">0</span>; i&lt;<span class="num">3</span>; i++) <span class="fn">printf</span>(<span class="str">"%d "</span>, arr[i]);
+
+    <span class="cm">/* Step 2: grow the block to hold 6 integers */</span>
+    <span class="ty">int</span> *temp = (<span class="ty">int</span> *)<span class="fn">realloc</span>(arr, <span class="num">6</span> * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+    <span class="kw">if</span> (!temp) {
+        <span class="fn">printf</span>(<span class="str">"\nrealloc failed\n"</span>);
+        <span class="fn">free</span>(arr);   <span class="cm">// free original if realloc fails</span>
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+    arr = temp;   <span class="cm">// safe to reassign now</span>
+
+    arr[<span class="num">3</span>] = <span class="num">40</span>;  arr[<span class="num">4</span>] = <span class="num">50</span>;  arr[<span class="num">5</span>] = <span class="num">60</span>;
+    <span class="fn">printf</span>(<span class="str">"\nExpanded (6 elements): "</span>);
+    <span class="kw">for</span>(i=<span class="num">0</span>; i&lt;<span class="num">6</span>; i++) <span class="fn">printf</span>(<span class="str">"%d "</span>, arr[i]);
+
+    <span class="cm">/* Step 3: shrink back to 2 elements */</span>
+    arr = (<span class="ty">int</span> *)<span class="fn">realloc</span>(arr, <span class="num">2</span> * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+    <span class="fn">printf</span>(<span class="str">"\nShrunk  (2 elements): "</span>);
+    <span class="kw">for</span>(i=<span class="num">0</span>; i&lt;<span class="num">2</span>; i++) <span class="fn">printf</span>(<span class="str">"%d "</span>, arr[i]);
+
+    <span class="fn">free</span>(arr);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>How realloc() Works Internally</h3>
+      <ol class="steps">
+        <li><span>1</span> <code>realloc(ptr, newSize)</code> is called with an existing pointer and desired new size.</li>
+        <li><span>2</span> If the heap block can be <strong>extended in-place</strong>, it does so and returns the same address.</li>
+        <li><span>3</span> If not, it allocates a <strong>new block</strong> elsewhere, copies old data, frees the old block, and returns the new pointer.</li>
+        <li><span>4</span> If <code>newSize == 0</code>, it behaves like <code>free(ptr)</code>.</li>
+        <li><span>5</span> If <code>ptr == NULL</code>, it behaves like <code>malloc(newSize)</code>.</li>
+      </ol>
+
+      <table>
+        <tr><th>Scenario</th><th>Behaviour</th></tr>
+        <tr><td>Expand (grow)</td><td>Old data preserved; new bytes contain garbage</td></tr>
+        <tr><td>Shrink (reduce)</td><td>Only first <em>newSize</em> bytes kept; rest returned to heap</td></tr>
+        <tr><td>Failure</td><td>Returns <code>NULL</code>; original block is <strong>NOT freed</strong></td></tr>
+        <tr><td><code>realloc(NULL, n)</code></td><td>Equivalent to <code>malloc(n)</code></td></tr>
+        <tr><td><code>realloc(ptr, 0)</code></td><td>Equivalent to <code>free(ptr)</code></td></tr>
+      </table>
+
+      <div class="box red">
+        <strong>⚠ Critical Safety Pattern</strong>
+        Never write <code>arr = realloc(arr, newSize)</code> directly! If <code>realloc</code> fails it returns <code>NULL</code>
+        and you lose the original pointer — a memory leak. Always store the result in a <em>temporary</em> pointer first,
+        check it, then assign to <code>arr</code>.
+      </div>
+
+      <div class="box green">
+        <strong>Sample Run</strong>
+        Original: 10 20 30 &nbsp;→&nbsp; Expanded: 10 20 30 40 50 60 &nbsp;→&nbsp; Shrunk: 10 20
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRAM C3: free -->
+  <div class="prog-card">
+    <div class="pc-header">
+      <div class="pc-num">Program C3</div>
+      <div class="pc-title">Proper Memory Deallocation using <code>free()</code></div>
+    </div>
+    <div class="pc-body">
+      <h3>Objective</h3>
+      <p>Demonstrate correct usage of <code>free()</code> — releasing heap memory, setting the pointer to <code>NULL</code> afterwards, and understanding what happens with multiple frees and NULL frees.</p>
+
+      <pre><span class="label">free_demo.c</span><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="ty">int</span> <span class="fn">main</span>() {
+    <span class="cm">/* --- Example 1: Basic free --- */</span>
+    <span class="ty">int</span> *p = (<span class="ty">int</span> *)<span class="fn">malloc</span>(<span class="num">5</span> * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+    <span class="kw">if</span> (!p) { <span class="fn">printf</span>(<span class="str">"Alloc failed\n"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+    p[<span class="num">0</span>] = <span class="num">100</span>;
+    <span class="fn">printf</span>(<span class="str">"Before free: p[0] = %d\n"</span>, p[<span class="num">0</span>]);
+
+    <span class="fn">free</span>(p);       <span class="cm">// memory returned to OS</span>
+    p = <span class="num">NULL</span>;      <span class="cm">// ← GOOD PRACTICE: prevents dangling pointer</span>
+
+    <span class="cm">/* --- Example 2: free(NULL) is always safe --- */</span>
+    <span class="ty">int</span> *q = <span class="num">NULL</span>;
+    <span class="fn">free</span>(q);       <span class="cm">// no crash — freeing NULL is a no-op</span>
+    <span class="fn">printf</span>(<span class="str">"free(NULL) executed safely\n"</span>);
+
+    <span class="cm">/* --- Example 3: double free (DANGEROUS — do NOT do this) --- */</span>
+    <span class="ty">int</span> *r = (<span class="ty">int</span> *)<span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="ty">int</span>));
+    <span class="fn">free</span>(r);
+    r = <span class="num">NULL</span>;     <span class="cm">// set NULL → second free is safe</span>
+    <span class="fn">free</span>(r);     <span class="cm">// safe because r is NULL</span>
+    <span class="fn">printf</span>(<span class="str">"Safe double-free pattern demonstrated\n"</span>);
+
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+      <h3>What free() Does (and Does NOT Do)</h3>
+      <table>
+        <tr><th>Fact</th><th>Detail</th></tr>
+        <tr><td>What it releases</td><td>The block of heap memory — it is now available for future allocations.</td></tr>
+        <tr><td>Does it clear memory?</td><td>❌ No. The old data may still physically sit there until overwritten.</td></tr>
+        <tr><td>Does it change the pointer?</td><td>❌ No. The pointer still holds the old address (now invalid — dangling).</td></tr>
+        <tr><td><code>free(NULL)</code></td><td>✅ Completely safe — the standard guarantees it is a no-op.</td></tr>
+        <tr><td>Double free</td><td>❌ Undefined behaviour — corrupts the heap allocator, may crash or open security holes.</td></tr>
+        <tr><td>Best practice after free</td><td>Always set <code>ptr = NULL</code> immediately after <code>free(ptr)</code>.</td></tr>
+      </table>
+
+      <div class="box purple">
+        <strong>Memory Lifecycle Summary</strong>
+        <code>malloc/calloc</code> → use the memory → <code>realloc</code> (if size changes) → <code>free</code> → <code>ptr = NULL</code>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- 5. COMPARISON -->
+  <h2>8. Static vs Dynamic Allocation</h2>
+  <div class="compare">
+    <div class="side bad">
+      <h4>❌ Static (Compile-time)</h4>
+      <ul>
+        <li>Size must be known before running</li>
+        <li>Wastes memory if too large</li>
+        <li>Crashes if too small (overflow)</li>
+        <li>Lives on the Stack</li>
+        <li>Freed automatically on function return</li>
+      </ul>
+    </div>
+    <div class="side good">
+      <h4>✅ Dynamic (Run-time)</h4>
+      <ul>
+        <li>Size decided by user input / file size etc.</li>
+        <li>Allocate exactly what you need</li>
+        <li>Can resize with <code>realloc</code></li>
+        <li>Lives on the Heap</li>
+        <li>You control when it is freed</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 9. COMMON PITFALLS -->
+  <h2>9. Common Pitfalls &amp; How to Avoid Them</h2>
+  <div class="pitfalls">
+    <div class="pitfall">
+      <h4>1. Memory Leak</h4>
+      <p>Allocating memory but never calling <code>free()</code>. The program slowly consumes all RAM.</p>
+    </div>
+    <div class="pitfall">
+      <h4>2. Dangling Pointer</h4>
+      <p>Using a pointer after calling <code>free()</code> on it. Set pointer to <code>NULL</code> after freeing.</p>
+    </div>
+    <div class="pitfall">
+      <h4>3. NULL Dereference</h4>
+      <p>Not checking if <code>malloc</code> returned <code>NULL</code> before using the pointer.</p>
+    </div>
+    <div class="pitfall">
+      <h4>4. Buffer Overflow</h4>
+      <p>Writing past the end of allocated memory — e.g., forgetting the <code>+1</code> for the null terminator in strings.</td></p>
+    </div>
+    <div class="pitfall">
+      <h4>5. Double Free</h4>
+      <p>Calling <code>free()</code> twice on the same pointer causes undefined behavior / crash.</p>
+    </div>
+    <div class="pitfall">
+      <h4>6. Wrong Free Order (2-D)</h4>
+      <p>Freeing the parent pointer before the row pointers leaks all row memory. Always free children first.</p>
+    </div>
+  </div>
+
+  <!-- 10. GOLDEN RULES -->
+  <h2>10. Golden Rules of Dynamic Memory Allocation</h2>
+  <div class="box purple">
+    <strong>Rules to Memorise</strong>
+    <ol style="padding-left:20px; margin-top:8px; font-size:14.5px;">
+      <li style="margin-bottom:8px;">Every <code>malloc / calloc / realloc</code> must have a matching <code>free</code>.</li>
+      <li style="margin-bottom:8px;">Always check if the returned pointer is <code>NULL</code> before using it.</li>
+      <li style="margin-bottom:8px;">Use <code>sizeof</code> — never hard-code byte counts (e.g., assume int is 4 bytes everywhere).</li>
+      <li style="margin-bottom:8px;">For strings, allocate <code>length + 1</code> bytes to hold the null terminator.</li>
+      <li style="margin-bottom:8px;">For 2-D arrays, free in reverse order: rows first, then the pointer array.</li>
+      <li>After calling <code>free(ptr)</code>, set <code>ptr = NULL</code> to prevent dangling-pointer bugs.</li>
+    </ol>
+  </div>
+
+  <!-- 11. QUICK REFERENCE -->
+  <h2>11. Quick Reference – Syntax Cheat Sheet</h2>
+  <pre><span class="cm">/* 1-D Array */</span>
+<span class="ty">int</span> *arr = (<span class="ty">int</span> *)<span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+<span class="fn">free</span>(arr);
+
+<span class="cm">/* 2-D Matrix */</span>
+<span class="ty">int</span> **mat = (<span class="ty">int</span> **)<span class="fn">malloc</span>(m * <span class="kw">sizeof</span>(<span class="ty">int</span> *));
+<span class="kw">for</span>(<span class="ty">int</span> i=<span class="num">0</span>; i&lt;m; i++)
+    mat[i] = (<span class="ty">int</span> *)<span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="ty">int</span>));
+<span class="kw">for</span>(<span class="ty">int</span> i=<span class="num">0</span>; i&lt;m; i++) <span class="fn">free</span>(mat[i]);
+<span class="fn">free</span>(mat);
+
+<span class="cm">/* Dynamic String */</span>
+<span class="ty">char</span> *str = (<span class="ty">char</span> *)<span class="fn">malloc</span>((n+<span class="num">1</span>) * <span class="kw">sizeof</span>(<span class="ty">char</span>));
+<span class="fn">free</span>(str);  str = <span class="num">NULL</span>;
+
+<span class="cm">/* Resize with realloc */</span>
+arr = (<span class="ty">int</span> *)<span class="fn">realloc</span>(arr, newSize * <span class="kw">sizeof</span>(<span class="ty">int</span>));</pre>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>Theory of Algorithms (BSC-H) &nbsp;·&nbsp; Lab 17 &nbsp;·&nbsp; Darshan University &nbsp;·&nbsp; Semester 4</p>
+    <p style="margin-top:6px;">Prepared for Classroom Use &nbsp;·&nbsp; March 2026</p>
+  </div>
+
+</div>
+</body>
+</html>
